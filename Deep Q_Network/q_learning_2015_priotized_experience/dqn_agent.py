@@ -8,12 +8,12 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 64         # minibatch size
+BUFFER_SIZE = int(1e3)  # replay buffer size
+BATCH_SIZE = int(1e2)       # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
 LR = 5e-4               # learning rate 
-UPDATE_EVERY = 4        # how often to update the network
+UPDATE_EVERY = 4      # how often to update the network
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -35,21 +35,29 @@ class Agent():
         self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
         # Initialize time step (for updating every UPDATE_EVERY steps)
         self.t_step = 0
-    
+
+    def single_loss(self, state, action, reward, next_state, done):
+            max_val = self.qnetwork_target(torch.from_numpy(next_state).to(device))
+            max_val = max(max_val)
+            target = reward + GAMMA*max_val*(1-done)
+            current = self.qnetwork_local(torch.from_numpy(state).to(device))[action]
+            loss = float(F.mse_loss(target, current))
+            return loss
+        
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
-        loss = 1e-5
+        loss = self.single_loss(state, action, reward, next_state, done)
         self.memory.add(state, action, reward, next_state, done, loss)
         
-        # Learn every UPDATE_EVERY time steps.
+        # Learn every UPDATE_EVERY time steps
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
         if self.t_step == 0:
             # If enough samples are available in memory, get random subset and learn
-            if len(self.memory) > BATCH_SIZE:
+            if len(self.memory) == BUFFER_SIZE:
                 experiences = self.memory.sample()
                 self.learn(experiences, GAMMA)
 
-    def act(self, state, eps=0.):
+    def act(self, state, eps=1.0):
 
         state = torch.from_numpy(state).float().unsqueeze(0).to(device)
         self.qnetwork_local.eval()
