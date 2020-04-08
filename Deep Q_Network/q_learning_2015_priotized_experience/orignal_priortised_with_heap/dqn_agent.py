@@ -1,6 +1,9 @@
 import numpy as np
 import random
 from collections import namedtuple, deque
+from itertools import count
+import heapq
+tiebreaker = count()
 
 from model import QNetwork
 
@@ -8,8 +11,8 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-BUFFER_SIZE = int(1e3)  # replay buffer size
-BATCH_SIZE = int(1e2)       # minibatch size
+BUFFER_SIZE = int(1e5)  # replay buffer size
+BATCH_SIZE = 64      # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
 LR = 5e-4               # learning rate 
@@ -24,7 +27,7 @@ class Agent():
 
         self.state_size = state_size
         self.action_size = action_size
-        self.seed = random.seed(seed)
+        random.seed(0)
 
         # Q-Network
         self.qnetwork_local = QNetwork(state_size, action_size, seed).to(device)
@@ -41,7 +44,8 @@ class Agent():
             max_val = max(max_val)
             target = reward + GAMMA*max_val*(1-done)
             current = self.qnetwork_local(torch.from_numpy(state).to(device))[action]
-            loss = float(F.mse_loss(target, current))
+            #loss = float(F.mse_loss(target, current))
+            loss = abs(float(target) - float(current))
             return loss
         
     def step(self, state, action, reward, next_state, done):
@@ -53,7 +57,7 @@ class Agent():
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
         if self.t_step == 0:
             # If enough samples are available in memory, get random subset and learn
-            if len(self.memory) == BUFFER_SIZE:
+            if len(self.memory) >= BATCH_SIZE:
                 experiences = self.memory.sample()
                 self.learn(experiences, GAMMA)
 
@@ -73,7 +77,7 @@ class Agent():
 
     def learn(self, experiences, gamma):
 
-        states, actions, rewards, next_states, dones, _ = experiences
+        states, actions, rewards, next_states, dones  = experiences
         ## TODO: compute and minimize the loss
         max_val = self.qnetwork_target(next_states)
         best_val = max_val.argmax(dim= -1)
@@ -108,29 +112,25 @@ class ReplayBuffer:
         self.memory = []  
         self.batch_size = batch_size
         self.buffer_size = buffer_size
-        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done", "losses"])
-        self.seed = random.seed(seed)
+        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
         self.temp = 0
+        random.seed(0)
     
     def add(self, state, action, reward, next_state, done, loss):
         """Add a new experience to memory."""
-        e = self.experience(state, action, reward, next_state, done, loss)
-        self.memory.append(e)
+        e = self.experience(state, action, reward, next_state, done)
+        heapq.heappush(self.memory, (loss, next(tiebreaker), e))
         if len(self.memory) > self.buffer_size:
             del self.memory[0]
+        heapq.heapify(self.memory)
 
 
-    
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         #experiences = random.sample(self.memory, k=self.batch_size)
-        _, _, _,_, _,losses = zip(*self.memory)
-        temp = sum(losses)
-        prob_list = [x/temp for x in losses]
-        selected_list = np.random.choice(np.arange(len(prob_list)), self.batch_size, p=prob_list, replace = False)
-        selected_list = list(selected_list)
-        selected_list.sort(reverse=True)
-        experiences = [self.memory.pop(x) for x in selected_list]
+        experiences = heapq.nlargest(BATCH_SIZE, self.memory)
+        experiences = [e for (_,_,e) in experiences]
+        self.memory = self.memory[BATCH_SIZE:]
         #experiences = [self.memory.pop(random.randrange(len(self.memory))) for _ in range(self.batch_size)]
         # adding lines to delete experience
         #end of edit
@@ -140,9 +140,7 @@ class ReplayBuffer:
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
         next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
-        losses = torch.from_numpy(np.vstack([e.losses for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
-        self.temp = losses
-        return (states, actions, rewards, next_states, dones, losses)
+        return (states, actions, rewards, next_states, dones)
 
     def __len__(self):
         """Return the current size of internal memory."""
