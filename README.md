@@ -23,7 +23,7 @@ The followings are packages that are required for working with the repository.
 * Each of the folders are marked with algorthm_simulation where the algorithm is the algorithm used to solve the simulation mentioned in open ai gym environment tab [Open AI Gym Environment](https://gym.openai.com/envs/)
 
 ## Cheetsheet :
-* You can also take help from udacity Deep Reinforcment Learning cheetsheet [cheetsheet](https://github.com/akashkmr27089/Deep-Reinforcemnt-Learning-ALL-/blob/master/cheatsheet.pdf)
+* You can also take help from [udacity Deep Reinforcment Learning cheetsheet](https://github.com/akashkmr27089/Deep-Reinforcemnt-Learning-ALL-/blob/master/cheatsheet.pdf)
 
 ## Contribution
 * Contribution to this repo is very much appreciated. You can also leave me feedback for any improvements.
