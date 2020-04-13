@@ -13,3 +13,7 @@ Try to change the parameters in the notebook, to see if you can get the agent to
 ### Results
 
 ![Trained Agent][image1]
+
+# Testing on your own
+* Pls refer to jupyter notebook CEM.ipynb or cross_entropy_ownn.ipynb
+* for hill climb implementation visit hill_climb_continious_mountain.ipynb
