@@ -1,0 +1,7 @@
+https://www.jeremyjordan.me/autoencoders/
+
+https://www.jeremyjordan.me/variational-autoencoders/
+
+https://towardsdatascience.com/intuitively-understanding-variational-autoencoders-1bfe67eb5daf
+
+https://www.countbayesie.com/blog/2017/5/9/kullback-leibler-divergence-explained
