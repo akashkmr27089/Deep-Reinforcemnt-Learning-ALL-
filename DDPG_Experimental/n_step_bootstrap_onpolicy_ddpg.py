@@ -83,7 +83,7 @@ class Agent():
         score = 0
         for _ in range(max_len):
             state1 = self.into_tensor(state1)
-            action1 = self.act(state)
+            action1 = self.act(state1)
             action1_t = self.into_tensor(action1)
             value1_pred = self.qvalue_local(state1, action1_t)
 
@@ -110,6 +110,7 @@ class Agent():
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
             self.actor_optimizer.step()
+            state1 = state2
 
             self.soft_update(self.actor_local, self.actor_target, TAU)
             self.soft_update(self.qvalue_local, self.qvalue_target, TAU) 
